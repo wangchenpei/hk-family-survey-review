@@ -2,3 +2,9 @@ data/
 .env
 *.log
 node_modules/
+dist/
+*.csv
+*.xlsx
+*.pdf
+!local-tool/sample.csv
+*.zip

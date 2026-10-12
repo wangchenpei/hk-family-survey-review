@@ -1,0 +1,11 @@
+import {mkdir,copyFile,readdir,rm} from 'node:fs/promises';
+const output='dist';
+const publishFiles=['index.html','bootstrap.js','app.mjs','csv.mjs','tencent-import.mjs','bundled.mjs','scoring.mjs','export.mjs','style.css'];
+const stalePublicFiles=['config.js','landing.mjs'];
+await mkdir(output,{recursive:true});
+const existing=await readdir(output,{withFileTypes:true});
+const known=new Set([...publishFiles,...stalePublicFiles]);
+if(existing.some(entry=>entry.isDirectory()||!known.has(entry.name)))throw Error('dist含未知文件或目录，已停止构建；请先检查 dist 内容。');
+for(const entry of existing)await rm(`${output}/${entry.name}`);
+await copyFile('public/index.html',`${output}/index.html`);
+for(const file of publishFiles.filter(file=>file!=='index.html'))await copyFile(`local-tool/${file}`,`${output}/${file}`);

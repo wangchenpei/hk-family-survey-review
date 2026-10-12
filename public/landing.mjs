@@ -1,0 +1,2 @@
+const link=document.getElementById('start'),note=document.getElementById('status');
+try{const url=new URL(window.SURVEY_CONFIG.tencentSurveyUrl);if(url.protocol!=='https:'||!['wj.qq.com','wj.tencent.com'].includes(url.hostname)||url.username||url.password||url.pathname==='/')throw Error();link.href=url.href;link.removeAttribute('aria-disabled');link.textContent='开始填写问卷';note.textContent='点击后前往腾讯问卷。填写前请阅读问卷中的隐私告知。';}catch{link.removeAttribute('href');link.setAttribute('aria-disabled','true');link.textContent='开始填写问卷（暂未开放）';note.textContent='正式问卷尚未配置，目前无法填写或提交。';}

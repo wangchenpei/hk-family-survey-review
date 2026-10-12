@@ -20,10 +20,11 @@ jobs:
         with:
           node-version: '22'
       - run: npm test
+      - run: npm run build:pages
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: public
+          path: dist
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4

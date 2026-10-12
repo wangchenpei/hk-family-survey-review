@@ -1,1 +1,1 @@
-window.SURVEY_CONFIG = { apiBase: '', preview: true };
+window.SURVEY_CONFIG = { tencentSurveyUrl: '' };
