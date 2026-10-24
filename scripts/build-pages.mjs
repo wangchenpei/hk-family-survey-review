@@ -1,6 +1,8 @@
 import {mkdir,copyFile,readdir,rm} from 'node:fs/promises';
+import {firebaseConfig} from '../local-tool/firebase-config.mjs';
+if(process.env.HSA_REQUIRE_FIREBASE==='1'&&(!firebaseConfig?.projectId||!firebaseConfig?.apiKey||!firebaseConfig?.authDomain))throw Error('账号服务尚未配置，已阻止正式发布。请先完成 Firebase 接入验收。');
 const output='dist';
-const publishFiles=['index.html','bootstrap.js','app.mjs','csv.mjs','tencent-import.mjs','bundled.mjs','scoring.mjs','export.mjs','style.css'];
+const publishFiles=['index.html','bootstrap.js','app.mjs','csv.mjs','tencent-import.mjs','bundled.mjs','scoring.mjs','export.mjs','style.css','firebase-config.mjs','customer-model.mjs','cloud-store.mjs','cloud-ui.mjs'];
 const stalePublicFiles=['config.js','landing.mjs'];
 await mkdir(output,{recursive:true});
 const existing=await readdir(output,{withFileTypes:true});

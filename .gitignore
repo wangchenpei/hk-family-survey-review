@@ -8,3 +8,9 @@ dist/
 *.pdf
 !local-tool/sample.csv
 *.zip
+
+.tools/
+*-debug.log
+**/service-account*.json
+**/*adminsdk*.json
+*.backup.json

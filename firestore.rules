@@ -1,0 +1,52 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function active() {
+      return request.auth != null
+        && get(/databases/$(database)/documents/staff/$(request.auth.uid)).data.enabled == true
+        && get(/databases/$(database)/documents/staff/$(request.auth.uid)).data.role in ['ADMIN','EMPLOYEE'];
+    }
+    function admin() { return active() && get(/databases/$(database)/documents/staff/$(request.auth.uid)).data.role == 'ADMIN'; }
+    function owner(d) { return active() && (d.ownerUid == request.auth.uid || admin()); }
+    function score(n) { return n is number && n >= 0 && n <= 100; }
+    function valid(d) {
+      return d.keys().hasAll(['ownerUid','source','answerId','rawAnswers','answers','result','ruleVersion','basic','searchTerms','composite','deleted','warnings','createdAt','updatedAt','updatedBy','revision'])
+        && d.keys().hasOnly(['ownerUid','source','answerId','rawAnswers','answers','result','ruleVersion','basic','searchTerms','composite','deleted','warnings','createdAt','updatedAt','updatedBy','revision'])
+        && d.ownerUid is string && d.source is string && d.source.size() > 0 && d.source.size() <= 200
+        && d.answerId is string && d.answerId.size() > 0 && d.answerId.size() <= 200
+        && d.rawAnswers is map && d.answers is map && d.result is map && d.warnings is list
+        && d.ruleVersion is string && d.ruleVersion == d.result.version
+        && score(d.result.scores.H) && score(d.result.scores.S) && score(d.result.scores.A)
+        && score(d.composite) && d.composite == d.result.composite
+        && d.result.level in ['A','B','C','D']
+        && d.basic.keys().hasOnly(['name','phone','notes'])
+        && d.basic.name is string && d.basic.name.size() <= 200
+        && d.basic.phone is string && d.basic.phone.size() <= 200
+        && d.basic.notes is string && d.basic.notes.size() <= 10000
+        && d.searchTerms is list && d.searchTerms.size() <= 2
+        && d.deleted is bool && d.createdAt is timestamp
+        && d.updatedAt == request.time && d.updatedBy == request.auth.uid
+        && d.revision is int;
+    }
+    match /staff/{uid} {
+      allow get: if request.auth != null && (request.auth.uid == uid || admin());
+      allow list: if admin() && request.query.limit <= 50;
+      allow write: if false;
+    }
+    match /customers/{id} {
+      allow get: if active() && (!exists(/databases/$(database)/documents/customers/$(id)) || owner(resource.data));
+      // Queries must constrain ownerUid for employees. Aggregates share list permission.
+      allow list: if owner(resource.data);
+      allow create: if active() && request.resource.data.ownerUid == request.auth.uid
+        && valid(request.resource.data) && request.resource.data.createdAt == request.time
+        && request.resource.data.revision == 1 && request.resource.data.deleted == false;
+      allow update: if owner(resource.data) && valid(request.resource.data)
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.source == resource.data.source
+        && request.resource.data.answerId == resource.data.answerId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.revision == resource.data.revision + 1;
+      allow delete: if false;
+    }
+  }
+}

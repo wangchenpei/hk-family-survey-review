@@ -1,1 +1,17 @@
-{"name":"hk-family-survey","private":true,"type":"module","scripts":{"start":"node local-server.mjs","start:legacy":"node server.mjs","test":"node --test local-tool/test.mjs","test:local":"node --test local-tool/test.mjs","build:pages":"node scripts/build-pages.mjs"},"engines":{"node":">=22"}}
+{
+  "name": "hk-family-survey",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node local-server.mjs",
+    "start:legacy": "node server.mjs",
+    "test": "node --test local-tool/test.mjs tests/customer-model.test.mjs",
+    "test:local": "node --test local-tool/test.mjs",
+    "build:pages": "node scripts/build-pages.mjs",
+    "start:cloud": "node scripts/serve-cloud.mjs",
+    "test:permissions": "node tests/firebase/node_modules/firebase-tools/lib/bin/firebase.js emulators:exec --only firestore --project demo-hsa-stage2 \"node --test tests/firebase/permissions.test.mjs\""
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
