@@ -48,3 +48,16 @@ export async function saveSequential(list,save,onResult=()=>{}){
   for(const client of list){try{const value=await save(client);results.push({client,ok:true,value});onResult(client,null,value)}catch(error){results.push({client,ok:false,error});onResult(client,error)}}
   return results;
 }
+export async function saveBounded(list,save,onResult=()=>{},concurrency=3){
+  const results=new Array(list.length);let next=0;
+  const worker=async()=>{
+    while(true){
+      const index=next++;if(index>=list.length)return;
+      const client=list[index];
+      try{const value=await save(client);results[index]={client,ok:true,value};onResult(client,null,value)}
+      catch(error){results[index]={client,ok:false,error};onResult(client,error)}
+    }
+  };
+  await Promise.all(Array.from({length:Math.min(list.length,Math.max(1,Math.floor(concurrency)||1))},worker));
+  return results;
+}

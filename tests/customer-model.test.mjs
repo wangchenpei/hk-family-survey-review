@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {customerKey,toRecord,editCustomer,scoreRaw,saveSequential,questionFields} from '../local-tool/customer-model.mjs';
+import {customerKey,toRecord,editCustomer,scoreRaw,saveSequential,saveBounded,questionFields} from '../local-tool/customer-model.mjs';
 const raw=Object.fromEntries(questionFields.map(k=>[k,'A.合成答案']));
 raw.customerId='SYNTH-001';raw.name='合成客户';raw.phone='';
 function client(){return {uid:'synthetic',rawAnswers:{...raw},...scoreRaw(raw),warnings:[]}}
@@ -26,4 +26,14 @@ test('批量部分失败保留结果，仅重试失败客户',async()=>{
   const results=await saveSequential(list,async()=>{if(++calls===2)throw Error('network');return {saved:true}});
   assert.deepEqual(results.map(r=>r.ok),[true,false,true]);assert.equal(list[1].rawAnswers.customerId,'SYNTH-001');
   const retry=await saveSequential(results.filter(r=>!r.ok).map(r=>r.client),async()=>true);assert.equal(retry.length,1);assert.equal(retry[0].ok,true);
+});
+test('批量保存并发最多为3，保留逐条结果并支持失败重试',async()=>{
+  const list=Array.from({length:8},client);let active=0,maxActive=0,calls=0;
+  const results=await saveBounded(list,async item=>{
+    active++;maxActive=Math.max(maxActive,active);await new Promise(resolve=>setTimeout(resolve,3));active--;calls++;
+    if(item===list[2])throw Error('network');return item.rawAnswers.customerId;
+  });
+  assert.equal(maxActive,3);assert.equal(calls,8);assert.deepEqual(results.map(result=>result.ok),[true,true,false,true,true,true,true,true]);
+  const retried=await saveBounded(results.filter(result=>!result.ok).map(result=>result.client),async()=>({saved:true}));
+  assert.equal(retried.length,1);assert.equal(retried[0].ok,true);
 });

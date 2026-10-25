@@ -1,6 +1,6 @@
 import {firebaseConfig} from './firebase-config.mjs';
 import {createCloudStore} from './cloud-store.mjs';
-import {chineseError,saveSequential} from './customer-model.mjs';
+import {chineseError,saveSequential,saveBounded} from './customer-model.mjs';
 import {clientUI} from './app.mjs';
 const $=id=>document.getElementById(id);
 const e=(tag,text)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;return node};
@@ -131,15 +131,15 @@ $('retry').onclick=()=>action(()=>saveList([...failed]));
 $('deleteSelected').onclick=()=>action(async()=>{
   const chosen=clientUI.get().filter(client=>selected.has(client)&&client.id&&!client.deleted);if(!chosen.length)throw Error('请先勾选当前页需要删除的客户。');
   if(!confirm(`确定将已勾选的 ${chosen.length} 位客户移入回收站？未勾选客户不会删除。`))return;
-  const removed=[];let failedCount=0;
-  for(const client of chosen){try{const saved=await store.save({...client,deleted:true},client.source);Object.assign(client,saved);removed.push(client);selected.delete(client)}catch{failedCount++}}
+  const results=await saveBounded(chosen,client=>store.save({...client,deleted:true},client.source),(client,error,saved)=>{if(!error){Object.assign(client,saved);selected.delete(client)}});
+  const removed=results.filter(result=>result.ok).map(result=>result.client),failedCount=results.length-removed.length;
   clientUI.set(clientUI.get().filter(client=>!removed.includes(client)));status(`成功删除 ${removed.length} 位，失败 ${failedCount} 位。${failedCount?'失败客户仍留在列表中，可重新勾选后重试。':''}`)
 });
 $('restoreSelected').onclick=()=>action(async()=>{
   const chosen=clientUI.get().filter(client=>selected.has(client)&&client.id&&client.deleted);if(!chosen.length)throw Error('请先勾选当前页需要恢复的客户。');
   if(!confirm(`确定恢复已勾选的 ${chosen.length} 位客户？未勾选客户将保留在回收站。`))return;
-  const restored=[];let failedCount=0;
-  for(const client of chosen){try{const saved=await store.save({...client,deleted:false},client.source);Object.assign(client,saved);restored.push(client);selected.delete(client)}catch{failedCount++}}
+  const results=await saveBounded(chosen,client=>store.save({...client,deleted:false},client.source),(client,error,saved)=>{if(!error){Object.assign(client,saved);selected.delete(client)}});
+  const restored=results.filter(result=>result.ok).map(result=>result.client),failedCount=results.length-restored.length;
   clientUI.set(clientUI.get().filter(client=>!restored.includes(client)));status(`成功恢复 ${restored.length} 位，失败 ${failedCount} 位。${failedCount?'失败客户仍留在列表中，可重新勾选后重试。':''}`)
 });
 $('backup').onclick=()=>action(async()=>{
