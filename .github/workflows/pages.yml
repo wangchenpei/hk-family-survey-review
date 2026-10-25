@@ -23,6 +23,7 @@ jobs:
       - run: npm run build:pages
         env:
           HSA_REQUIRE_FIREBASE: '1'
+      - run: node --test tests/pages-artifact.test.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
